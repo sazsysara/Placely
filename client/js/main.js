@@ -2327,7 +2327,8 @@ function buildProfileViewHtml(student, options = {}) {
 
   return `
     <div class="profile-summary-grid" style="margin-bottom: 1rem;">
-      <div class="card profile-summary-card profile-summary-card--identity">
+      <div class="card profile-summary-card profile-summary-card--identity" style="position:relative;">
+        ${student.registerNo ? `<div class="profile-reg-badge">${student.registerNo}</div>` : ''}
         <div class="profile-summary-header" style="flex-direction: column; align-items: center; text-align: center; gap: 1rem;">
           ${displayPhoto
       ? `<img src="${displayPhoto}" alt="${displayName}" class="profile-avatar-medium" style="width: 120px; height: 120px; border-radius: 50%;">`
