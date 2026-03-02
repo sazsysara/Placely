@@ -2397,97 +2397,99 @@ function buildProfileViewHtml(student, options = {}) {
         <div id="${leetcodeContainerId}"></div>
       </div>
 
-      <div class="card profile-summary-card profile-summary-card--academics">
-        <h4 class="profile-box-title">Academics</h4>
-        <div class="profile-academics-list">
-          <div><strong>CGPA:</strong> <span>${buildInlineFieldControl('gradePoints', student.gradePoints || 'N/A')}</span></div>
-          <div><strong>12th %:</strong> <span>${buildInlineFieldControl('twelfthPercentage', twelfthPercentage)}</span></div>
-          <div><strong>10th %:</strong> <span>${buildInlineFieldControl('tenthPercentage', tenthPercentage)}</span></div>
-          ${inlineProfileEdit || (student.diplomaPercentage != null && student.diplomaPercentage !== '') ? `<div><strong>Diploma %:</strong> <span>${buildInlineFieldControl('diplomaPercentage', student.diplomaPercentage ?? 'N/A')}</span></div>` : ''}
-          <div><strong>Register No:</strong> <span>${buildInlineFieldControl('registerNo', student.registerNo || 'N/A')}</span></div>
-          ${inlineProfileEdit || (student.section && student.section !== '') ? `<div><strong>Section:</strong> <span>${buildInlineFieldControl('section', student.section || 'N/A')}</span></div>` : ''}
-          ${inlineProfileEdit || (student.gender && student.gender !== '') ? `<div><strong>Gender:</strong> <span>${buildInlineFieldControl('gender', student.gender || 'N/A')}</span></div>` : ''}
-        </div>
-      </div>
+      ${(() => {
+        const cgpa = Number(student.gradePoints || 0);
+        const leetcode = Number(student.leetcodeSolvedAll || 0);
+        const internships = Number(student.internships || 0);
+        const certs = Number(student.certifications || 0);
+        const cgpaNorm = Math.min(cgpa / 10, 1) * 100;
+        const leetcodeNorm = Math.min(leetcode / 300, 1) * 100;
+        const internNorm = Math.min(internships / 3, 1) * 100;
+        const certNorm = Math.min(certs / 5, 1) * 100;
+        const readiness = Math.round(cgpaNorm * 0.28 + leetcodeNorm * 0.33 + internNorm * 0.22 + certNorm * 0.17);
+        const scoreColor = readiness >= 75 ? '#34d399' : readiness >= 50 ? '#fbbf24' : readiness >= 30 ? '#fb923c' : '#f87171';
+        const scoreLabel = readiness >= 75 ? 'Excellent' : readiness >= 50 ? 'Good' : readiness >= 30 ? 'Fair' : 'Needs Work';
+        const areas = [
+          { name: 'LeetCode', norm: leetcodeNorm, tip: leetcode < 50 ? 'Start solving LeetCode daily.' : leetcode < 150 ? `Solve ${150 - leetcode} more to cross 150.` : 'Great coding progress!' },
+          { name: 'CGPA', norm: cgpaNorm, tip: cgpa < 7 ? 'Focus on improving GPA.' : cgpa < 8.5 ? 'Push for 8.5+ CGPA.' : 'Strong academics!' },
+          { name: 'Internships', norm: internNorm, tip: internships === 0 ? 'Apply for 1 internship this break.' : internships < 2 ? 'One more internship helps a lot.' : 'Great experience!' },
+          { name: 'Certifications', norm: certNorm, tip: certs === 0 ? 'Get 1-2 certifications (AWS, Google).' : certs < 3 ? `${3 - certs} more cert(s) needed.` : 'Well-certified!' },
+        ];
+        const weakest = areas.filter(a => a.norm < 75).slice(0, 2);
+        const circumference = 2 * Math.PI * 54;
+        const dashOffset = circumference - (readiness / 100) * circumference;
+        return `
+          <div class="card profile-summary-card profile-summary-card--readiness">
+            <h4 class="profile-box-title" style="margin-bottom:0.5rem;">🎯 Placement Readiness</h4>
+            <div class="readiness-content" style="flex-direction:column;align-items:flex-start;gap:0.75rem;">
+              <div style="display:flex;align-items:center;gap:1rem;width:100%;">
+                <div class="readiness-chart-wrap">
+                  <svg class="readiness-ring" viewBox="0 0 120 120" width="96" height="96">
+                    <circle cx="60" cy="60" r="54" stroke="rgba(255,255,255,0.08)" stroke-width="8" fill="none"/>
+                    <circle cx="60" cy="60" r="54" stroke="${scoreColor}" stroke-width="8" fill="none"
+                      stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}"
+                      stroke-linecap="round" transform="rotate(-90 60 60)"
+                      style="transition:stroke-dashoffset 1s ease-out;"/>
+                    <text x="60" y="55" text-anchor="middle" fill="${scoreColor}" font-size="26" font-weight="700">${readiness}</text>
+                    <text x="60" y="72" text-anchor="middle" fill="#999" font-size="10">/ 100</text>
+                  </svg>
+                  <div class="readiness-label" style="color:${scoreColor};font-size:0.78rem;">${scoreLabel}</div>
+                </div>
+                <div class="readiness-bars" style="flex:1;">
+                  ${areas.map(a => `
+                    <div class="readiness-bar-row">
+                      <span class="readiness-bar-label">${a.name}</span>
+                      <div class="readiness-bar-track">
+                        <div class="readiness-bar-fill" style="width:${Math.round(a.norm)}%;background:${a.norm >= 75 ? '#34d399' : a.norm >= 50 ? '#fbbf24' : '#f87171'};"></div>
+                      </div>
+                      <span class="readiness-bar-pct">${Math.round(a.norm)}%</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+              ${weakest.length > 0 ? `
+                <div class="readiness-tips" style="width:100%;">
+                  <strong style="font-size:0.78rem;color:#FEC524;">💡 Tips:</strong>
+                  <ul style="margin:0.2rem 0 0 1rem;padding:0;font-size:0.78rem;color:#bbb;">
+                    ${weakest.map(a => `<li>${a.tip}</li>`).join('')}
+                  </ul>
+                </div>
+              ` : `<p style="font-size:0.78rem;color:#34d399;margin:0;">✨ You're placement-ready!</p>`}
+            </div>
+          </div>
+        `;
+      })()}
     </div>
 
-    ${(() => {
-      // AI Placement Readiness Score
-      const cgpa = Number(student.gradePoints || 0);
-      const leetcode = Number(student.leetcodeSolvedAll || 0);
-      const internships = Number(student.internships || 0);
-      const certs = Number(student.certifications || 0);
-      const twelfth = Number(student.twelfthPercentage || 0);
-
-      // Normalized components (out of 100)
-      const cgpaNorm = Math.min(cgpa / 10, 1) * 100;
-      const leetcodeNorm = Math.min(leetcode / 300, 1) * 100;
-      const internNorm = Math.min(internships / 3, 1) * 100;
-      const certNorm = Math.min(certs / 5, 1) * 100;
-      const twelfthNorm = Math.min(twelfth / 100, 1) * 100;
-
-      // Weighted score
-      const readiness = Math.round(
-        cgpaNorm * 0.25 + leetcodeNorm * 0.30 + internNorm * 0.20 + certNorm * 0.15 + twelfthNorm * 0.10
-      );
-
-      const scoreColor = readiness >= 75 ? '#34d399' : readiness >= 50 ? '#fbbf24' : readiness >= 30 ? '#fb923c' : '#f87171';
-      const scoreLabel = readiness >= 75 ? 'Excellent' : readiness >= 50 ? 'Good' : readiness >= 30 ? 'Fair' : 'Needs Work';
-
-      // Personalized tips based on weakest areas
-      const areas = [
-        { name: 'LeetCode', norm: leetcodeNorm, weight: 30, tip: leetcode < 50 ? 'Start solving LeetCode daily — aim for 50 easy problems first.' : leetcode < 150 ? `Solve ${150 - leetcode} more problems to cross the 150 mark.` : 'Great coding progress! Try more medium/hard problems.' },
-        { name: 'CGPA', norm: cgpaNorm, weight: 25, tip: cgpa < 7 ? 'Focus on improving your GPA this semester.' : cgpa < 8.5 ? 'Push for 8.5+ CGPA to unlock more opportunities.' : 'Strong academics!' },
-        { name: 'Internships', norm: internNorm, weight: 20, tip: internships === 0 ? 'Apply for at least 1 internship this break.' : internships < 2 ? 'One more internship will significantly boost your profile.' : 'Great internship experience!' },
-        { name: 'Certifications', norm: certNorm, weight: 15, tip: certs === 0 ? 'Get 1-2 relevant certifications (AWS, Google, or Coursera).' : certs < 3 ? `${3 - certs} more certification(s) would strengthen your profile.` : 'Well-certified!' },
-        { name: '12th %', norm: twelfthNorm, weight: 10, tip: '' }
-      ];
-
-      const weakest = areas.filter(a => a.tip && a.norm < 75).sort((a, b) => a.norm - b.norm).slice(0, 2);
-
-      const circumference = 2 * Math.PI * 54;
-      const dashOffset = circumference - (readiness / 100) * circumference;
-
-      return `
-    <div class="card readiness-score-card" style="margin-bottom: 1rem;">
-      <div class="readiness-content">
-        <div class="readiness-chart-wrap">
-          <svg class="readiness-ring" viewBox="0 0 120 120" width="120" height="120">
-            <circle cx="60" cy="60" r="54" stroke="rgba(255,255,255,0.08)" stroke-width="8" fill="none"/>
-            <circle cx="60" cy="60" r="54" stroke="${scoreColor}" stroke-width="8" fill="none"
-              stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}"
-              stroke-linecap="round" transform="rotate(-90 60 60)"
-              style="transition: stroke-dashoffset 1s ease-out;"/>
-            <text x="60" y="55" text-anchor="middle" fill="${scoreColor}" font-size="28" font-weight="700">${readiness}</text>
-            <text x="60" y="72" text-anchor="middle" fill="#999" font-size="10">/ 100</text>
-          </svg>
-          <div class="readiness-label" style="color:${scoreColor};">${scoreLabel}</div>
-        </div>
-        <div class="readiness-details">
-          <h4 class="profile-box-title" style="margin-bottom:0.5rem;">🎯 Placement Readiness</h4>
-          <div class="readiness-bars">
-            ${areas.filter(a => a.name !== '12th %' || twelfth > 0).map(a => `
-              <div class="readiness-bar-row">
-                <span class="readiness-bar-label">${a.name}</span>
-                <div class="readiness-bar-track">
-                  <div class="readiness-bar-fill" style="width:${Math.round(a.norm)}%; background:${a.norm >= 75 ? '#34d399' : a.norm >= 50 ? '#fbbf24' : '#f87171'};"></div>
-                </div>
-                <span class="readiness-bar-pct">${Math.round(a.norm)}%</span>
-              </div>
-            `).join('')}
-          </div>
-          ${weakest.length > 0 ? `
-            <div class="readiness-tips">
-              <strong style="font-size:0.82rem;color:#FEC524;">💡 Tips to improve:</strong>
-              <ul style="margin:0.25rem 0 0 1rem;padding:0;font-size:0.82rem;color:#bbb;">
-                ${weakest.map(a => `<li>${a.tip}</li>`).join('')}
-              </ul>
-            </div>
-          ` : '<p style="font-size:0.82rem;color:#34d399;margin-top:0.5rem;">✨ You\'re placement-ready! Keep it up.</p>'}
-        </div>
+    <div class="profile-academics-chips">
+      <div class="profile-academic-chip">
+        <span class="pac-label">CGPA</span>
+        <span class="pac-value">${inlineProfileEdit ? buildInlineFieldControl('gradePoints', student.gradePoints || 'N/A') : (student.gradePoints || 'N/A')}</span>
       </div>
-    </div>`;
-    })()}
+      <div class="profile-academic-chip">
+        <span class="pac-label">10th %</span>
+        <span class="pac-value">${inlineProfileEdit ? buildInlineFieldControl('tenthPercentage', tenthPercentage) : tenthPercentage}</span>
+      </div>
+      <div class="profile-academic-chip">
+        <span class="pac-label">12th %</span>
+        <span class="pac-value">${inlineProfileEdit ? buildInlineFieldControl('twelfthPercentage', twelfthPercentage) : twelfthPercentage}</span>
+      </div>
+      ${(inlineProfileEdit || (student.diplomaPercentage != null && student.diplomaPercentage !== '')) ? `
+        <div class="profile-academic-chip">
+          <span class="pac-label">Diploma %</span>
+          <span class="pac-value">${inlineProfileEdit ? buildInlineFieldControl('diplomaPercentage', student.diplomaPercentage ?? 'N/A') : (student.diplomaPercentage || 'N/A')}</span>
+        </div>` : ''}
+      ${(inlineProfileEdit || (student.section && student.section !== '')) ? `
+        <div class="profile-academic-chip">
+          <span class="pac-label">Section</span>
+          <span class="pac-value">${inlineProfileEdit ? buildInlineFieldControl('section', student.section || 'N/A') : (student.section || 'N/A')}</span>
+        </div>` : ''}
+      ${(inlineProfileEdit || (student.gender && student.gender !== '')) ? `
+        <div class="profile-academic-chip">
+          <span class="pac-label">Gender</span>
+          <span class="pac-value">${inlineProfileEdit ? buildInlineFieldControl('gender', student.gender || 'N/A') : (student.gender || 'N/A')}</span>
+        </div>` : ''}
+    </div>
 
     <div class="profile-details-row" style="margin-bottom: 1rem;">
       <div class="card profile-percentile-card" style="margin-bottom: 0;">
