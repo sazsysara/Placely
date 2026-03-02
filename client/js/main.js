@@ -1667,10 +1667,6 @@ function initializeDashboardFilters(staffView, highlightId = null) {
   container.innerHTML = `
     <div class="dashboard-filter-toolbar">
       <button type="button" id="dashboard-filter-toggle" class="dashboard-filter-btn">Filters</button>
-      <select id="dashboard-dept-dropdown" class="dashboard-dept-dropdown" aria-label="Filter by department">
-        <option value="">All Depts</option>
-        ${departments.map(d => `<option value="${d}">${d}</option>`).join('')}
-      </select>
       <div class="dashboard-toolbar-search-wrap">
         <input type="search" id="dashboard-search-input" class="dashboard-toolbar-search" placeholder="Search students" value="${dashboardSearchQuery}">
       </div>
@@ -1912,19 +1908,7 @@ function initializeDashboardFilters(staffView, highlightId = null) {
     });
   }
 
-  const deptDropdown = document.getElementById('dashboard-dept-dropdown');
-  if (deptDropdown) {
-    deptDropdown.addEventListener('change', () => {
-      const selectedDept = deptDropdown.value;
-      if (selectedDept) {
-        const deptFiltered = students.filter(s => String(s.dept || '').trim() === selectedDept);
-        dashboardFilteredStudents = [...deptFiltered];
-      } else {
-        dashboardFilteredStudents = [...getDefaultAnalyticsSortedStudents()];
-      }
-      renderTable(filterDashboardRowsBySearch(dashboardFilteredStudents, dashboardSearchQuery), staffView, highlightId, currentDashboardSortKey);
-    });
-  }
+
 
   if (fetchLeetCodeBtn) {
     fetchLeetCodeBtn.addEventListener('click', async () => {
@@ -3445,8 +3429,52 @@ function renderLeaderboard() {
     </div>`;
   };
 
+  let lbSearchQuery = '';
+
+  const renderLeaderboardTables = (query) => {
+    const q = (query || '').toLowerCase().trim();
+    const filterList = (list) => q ? list.filter(s => (s.name || '').toLowerCase().includes(q) || (s.dept || '').toLowerCase().includes(q)) : list;
+
+    const filteredCoding = filterList(codingRank);
+    const filteredCgpa = filterList(cgpaRank);
+    const filteredDynamic = filterList(dynamicRank);
+
+    const tablesEl = leaderboardContent.querySelector('.lb-tables-grid');
+    if (tablesEl) {
+      tablesEl.innerHTML = `
+        <div class="card lb-card">
+          <h3 class="lb-card-title">💻 Coding Problems</h3>
+          <table class="lb-table">
+            <thead><tr><th style="width:60px;">Rank</th><th>Name</th><th style="width:80px;">Dept</th><th style="width:100px;">Solved</th></tr></thead>
+            <tbody>${renderRows(filteredCoding, (student) => `<strong>${Number(student.leetcodeSolvedAll || 0)}</strong>`, 'coding')}</tbody>
+          </table>
+          ${showAllButton('coding', filteredCoding.length)}
+        </div>
+        <div class="card lb-card">
+          <h3 class="lb-card-title">📚 CGPA</h3>
+          <table class="lb-table">
+            <thead><tr><th style="width:60px;">Rank</th><th>Name</th><th style="width:80px;">Dept</th><th style="width:100px;">CGPA</th></tr></thead>
+            <tbody>${renderRows(filteredCgpa, (student) => `<strong>${Number(student.gradePoints || 0).toFixed(2)}</strong>`, 'cgpa')}</tbody>
+          </table>
+          ${showAllButton('cgpa', filteredCgpa.length)}
+        </div>
+        <div class="card lb-card">
+          <h3 class="lb-card-title">🏆 Dynamic Score</h3>
+          <table class="lb-table">
+            <thead><tr><th style="width:60px;">Rank</th><th>Name</th><th style="width:80px;">Dept</th><th style="width:100px;">Score</th></tr></thead>
+            <tbody>${renderRows(filteredDynamic, (student) => `<strong>${getDynamicScore(student).toFixed(1)}</strong>`, 'dynamic')}</tbody>
+          </table>
+          ${showAllButton('dynamic', filteredDynamic.length)}
+        </div>
+      `;
+    }
+  };
+
   leaderboardContent.innerHTML = `
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
+    <div class="lb-search-wrap">
+      <input type="search" id="lb-search-input" class="lb-search-input" placeholder="Search by name or department...">
+    </div>
+    <div class="lb-tables-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
       <div class="card lb-card">
         <h3 class="lb-card-title">💻 Coding Problems</h3>
         <table class="lb-table">
@@ -3502,4 +3530,12 @@ function renderLeaderboard() {
       </div>
     </div>
   `;
+
+  const lbSearchInput = document.getElementById('lb-search-input');
+  if (lbSearchInput) {
+    lbSearchInput.addEventListener('input', (e) => {
+      lbSearchQuery = e.target.value;
+      renderLeaderboardTables(lbSearchQuery);
+    });
+  }
 }
