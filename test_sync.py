@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import sys
 from app import get_students_data, scheduled_fetch_leetcode_stats, fetch_leetcode_profile
 
 students = get_students_data()
@@ -10,4 +11,5 @@ for student in students:
 print("\n" + "="*60)
 print("Running sync now...")
 print("="*60 + "\n")
-scheduled_fetch_leetcode_stats()
+force = '--force' in sys.argv
+scheduled_fetch_leetcode_stats(force=force)

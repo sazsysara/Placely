@@ -611,6 +611,30 @@ def _acceptance_rate(accepted, total):
     return round((accepted / total) * 100, 2)
 
 
+def _normalize_leetcode_username(username):
+    raw = str(username or '').strip()
+    if not raw:
+        return ''
+
+    lowered = raw.lower()
+    for prefix in ('https://leetcode.com/', 'http://leetcode.com/', 'https://www.leetcode.com/', 'http://www.leetcode.com/'):
+        if lowered.startswith(prefix):
+            raw = raw[len(prefix):].strip()
+            lowered = raw.lower()
+            break
+
+    if lowered.startswith('u/'):
+        raw = raw[2:].strip()
+    elif lowered.startswith('in/'):
+        raw = raw[3:].strip()
+
+    raw = raw.split('?', 1)[0].split('#', 1)[0].strip().strip('/')
+    if raw.startswith('@'):
+        raw = raw[1:].strip()
+
+    return raw
+
+
 def _normalize_posted_date(value):
     if value is None or value == '':
         return ''
@@ -788,11 +812,23 @@ def get_live_upcoming_internships(limit=12):
 
 
 def fetch_leetcode_profile(username):
+    normalized_username = _normalize_leetcode_username(username)
+    if not normalized_username:
+        return {
+            'success': False,
+            'username': username,
+            'message': 'LeetCode username is empty'
+        }
+
     payload = {
         'query': LEETCODE_PROFILE_QUERY,
-        'variables': {'username': username}
+        'variables': {'username': normalized_username}
     }
-    headers = {'Content-Type': 'application/json'}
+    headers = {
+        'Content-Type': 'application/json',
+        'Referer': 'https://leetcode.com/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36'
+    }
 
     try:
         response = http_requests.post(
@@ -806,15 +842,24 @@ def fetch_leetcode_profile(username):
     except http_requests.RequestException as exc:
         return {
             'success': False,
-            'username': username,
+            'username': normalized_username,
             'message': f'LeetCode request failed: {str(exc)}'
+        }
+
+    graphql_errors = response_json.get('errors') or []
+    if graphql_errors:
+        first_error = graphql_errors[0] if isinstance(graphql_errors[0], dict) else {}
+        return {
+            'success': False,
+            'username': normalized_username,
+            'message': first_error.get('message') or 'LeetCode GraphQL returned an error'
         }
 
     matched_user = (response_json.get('data') or {}).get('matchedUser')
     if not matched_user:
         return {
             'success': False,
-            'username': username,
+            'username': normalized_username,
             'message': 'LeetCode user not found or profile is private'
         }
 
@@ -846,7 +891,7 @@ def fetch_leetcode_profile(username):
 
     return {
         'success': True,
-        'username': matched_user.get('username', username),
+        'username': matched_user.get('username', normalized_username),
         'ranking': (matched_user.get('profile') or {}).get('ranking'),
         'solved': solved,
         'totalSubmissions': total_submissions,
@@ -855,7 +900,7 @@ def fetch_leetcode_profile(username):
 
 
 def _get_student_by_leetcode_username(username):
-    normalized = (username or '').strip().lower()
+    normalized = _normalize_leetcode_username(username).lower()
     if not normalized:
         return None
 
@@ -863,7 +908,7 @@ def _get_student_by_leetcode_username(username):
     return next(
         (
             student for student in students_data
-            if str(student.get('leetcodeUsername') or '').strip().lower() == normalized
+            if _normalize_leetcode_username(student.get('leetcodeUsername')).lower() == normalized
         ),
         None
     )
@@ -1459,8 +1504,11 @@ def manual_sync_leetcode():
     Sync uses cached DB reads and updates each student at most once per day.
     """
     try:
+        body = request.get_json(silent=True) or {}
+        force_sync = str(request.args.get('force', body.get('force', 'false'))).strip().lower() in ('1', 'true', 'yes', 'y')
+
         print("[MANUAL SYNC] User triggered LeetCode sync...")
-        summary = scheduled_fetch_leetcode_stats()
+        summary = scheduled_fetch_leetcode_stats(force=force_sync)
         if summary.get('error'):
             return jsonify({'success': False, 'message': f"Sync failed: {summary['error']}", 'summary': summary}), 500
 
@@ -1469,18 +1517,24 @@ def manual_sync_leetcode():
             f"Updated {summary['updated']}, skipped {summary['skipped']} (already synced today), "
             f"failed {summary['failed']}."
         )
+        if force_sync:
+            message = (
+                f"LeetCode force sync completed. "
+                f"Updated {summary['updated']}, failed {summary['failed']}."
+            )
         return jsonify({'success': True, 'message': message, 'summary': summary})
     except Exception as e:
         print(f"[MANUAL SYNC ERROR] {str(e)}")
         return jsonify({'success': False, 'message': f'Sync failed: {str(e)}'}), 500
 
 
-def scheduled_fetch_leetcode_stats():
+def scheduled_fetch_leetcode_stats(force=False):
     """Fetch LeetCode stats from GraphQL and update Supabase at most once per day per student."""
     try:
         now_local = datetime.now()
         now_utc = datetime.utcnow()
-        print(f"[{now_local}] Starting scheduled LeetCode stats fetch...")
+        mode = 'force' if force else 'daily'
+        print(f"[{now_local}] Starting {mode} LeetCode stats fetch...")
         students_data = get_students_data()
         
         updated_count = 0
@@ -1494,7 +1548,7 @@ def scheduled_fetch_leetcode_stats():
 
             eligible_count += 1
 
-            if _was_leetcode_synced_today(student, now_utc):
+            if not force and _was_leetcode_synced_today(student, now_utc):
                 skipped_count += 1
                 print(f"  [SKIP] {student.get('name', 'Unknown')} already synced today")
                 continue
@@ -1531,7 +1585,8 @@ def scheduled_fetch_leetcode_stats():
             'eligible': eligible_count,
             'updated': updated_count,
             'skipped': skipped_count,
-            'failed': failed_count
+            'failed': failed_count,
+            'force': bool(force)
         }
         print(
             f"[{datetime.now()}] Scheduled LeetCode fetch completed. "
