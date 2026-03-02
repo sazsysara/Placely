@@ -896,13 +896,61 @@ async function renderLiveInternships(container) {
   }
 }
 
+function animateCountUp(element, target, duration, suffix, decimals) {
+  const start = performance.now();
+  const isFloat = decimals > 0;
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+  const step = (now) => {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const value = target * ease(progress);
+    element.textContent = (isFloat ? value.toFixed(decimals) : Math.round(value)) + (suffix || '');
+    if (progress < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 function renderHome() {
   const title = document.getElementById('home-title');
   const bannerContainer = document.getElementById('home-banner-container');
   const homeContent = document.getElementById('home-content');
 
   title.textContent = '';
-  bannerContainer.innerHTML = '';
+
+  const totalStudents = students.length;
+  const placedStudents = students.filter(s => (s.placementStatus || '').toLowerCase() === 'placed').length;
+  const maxLeetcode = Math.max(...students.map(s => Number(s.leetcodeSolvedAll || 0)), 0);
+  const avgCgpa = totalStudents > 0
+    ? students.reduce((sum, s) => sum + Number(s.gradePoints || 0), 0) / totalStudents
+    : 0;
+  const recruitingCount = upcomingCompanies.length;
+
+  const statCards = [
+    { icon: '🎓', label: 'Total Students', target: totalStudents, suffix: '', decimals: 0 },
+    { icon: '✅', label: 'Placed', target: placedStudents, suffix: '', decimals: 0 },
+    { icon: '💻', label: 'Top LeetCode', target: maxLeetcode, suffix: '', decimals: 0 },
+    { icon: '📊', label: 'Avg CGPA', target: avgCgpa, suffix: '', decimals: 2 },
+    { icon: '🏢', label: 'Recruiting Partners', target: recruitingCount, suffix: '', decimals: 0 },
+  ];
+
+  bannerContainer.innerHTML = `
+    <div class="home-stats-grid">
+      ${statCards.map((stat, i) => `
+        <div class="home-stat-card" style="animation-delay: ${i * 80}ms">
+          <span class="home-stat-icon">${stat.icon}</span>
+          <span class="home-stat-value" data-target="${stat.target}" data-suffix="${stat.suffix}" data-decimals="${stat.decimals}">0</span>
+          <span class="home-stat-label">${stat.label}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  bannerContainer.querySelectorAll('.home-stat-value').forEach(el => {
+    const target = parseFloat(el.dataset.target);
+    const suffix = el.dataset.suffix || '';
+    const decimals = parseInt(el.dataset.decimals || '0', 10);
+    animateCountUp(el, target, 1400, suffix, decimals);
+  });
 
   homeContent.innerHTML = `
     <article class="home-post-card">

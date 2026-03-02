@@ -1912,6 +1912,85 @@ table tr:hover {
     box-shadow: 0 6px 16px rgba(254, 197, 36, 0.28);
 }
 
+/* === Home Stat Cards === */
+.home-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.85rem;
+    margin-bottom: 2rem;
+}
+
+.home-stat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 1.25rem 0.75rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(254, 197, 36, 0.15);
+    border-radius: 12px;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    animation: stat-card-in 0.45s ease both;
+}
+
+.home-stat-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(254, 197, 36, 0.45);
+    background: rgba(254, 197, 36, 0.06);
+}
+
+@keyframes stat-card-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.home-stat-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.home-stat-value {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: #FEC524;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.home-stat-label {
+    font-size: 0.75rem;
+    color: #999;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.light-mode .home-stat-card {
+    background: rgba(0,0,0,0.03);
+    border-color: rgba(156, 39, 176, 0.15);
+}
+
+.light-mode .home-stat-card:hover {
+    background: rgba(156, 39, 176, 0.05);
+    border-color: rgba(156, 39, 176, 0.4);
+}
+
+.light-mode .home-stat-value {
+    color: #7b1fa2;
+}
+
+@media (max-width: 860px) {
+    .home-stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 520px) {
+    .home-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 .home-post-card {
     display: grid;
     grid-template-columns: minmax(260px, 360px) 1fr;
