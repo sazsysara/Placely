@@ -74,7 +74,7 @@ const companyLogoDomains = {
   "LINARC": "linarc.com"
 };
 
-const notifications = [ { msg: 'Welcome to Placely!', date: '2026-01-27' } ];
+const notifications = [{ msg: 'Welcome to Placely!', date: '2026-01-27' }];
 
 if (typeof Chart !== 'undefined' && Chart.Tooltip?.positioners && !Chart.Tooltip.positioners.aboveSegment) {
   Chart.Tooltip.positioners.aboveSegment = function aboveSegmentPositioner(elements, eventPosition) {
@@ -488,15 +488,15 @@ async function connectLinkedIn() {
     const response = await fetch('/api/connect-linkedin');
     console.log("Response status:", response.status);
     console.log("Response ok:", response.ok);
-    
+
     const data = await response.json();
     console.log("Response data:", data);
-    
+
     if (!response.ok) {
       showToast(`Error: ${data.message || 'Failed to authenticate. Please log in and try again.'}`, 'error');
       return;
     }
-    
+
     if (data.auth_url) {
       console.log("Redirecting to LinkedIn...");
       window.open(data.auth_url, '_blank', 'noopener,noreferrer');
@@ -556,7 +556,7 @@ function checkLoginStatus() {
   const urlParams = new URLSearchParams(window.location.search);
   const loginStatus = urlParams.get('login');
   const msg = urlParams.get('msg');
-  
+
   if (loginStatus === 'success') {
     checkSession(); // Reload user session after successful Google login
     // Clean URL
@@ -578,6 +578,22 @@ function showSection(sectionId) {
   sectionIds.forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active'); });
   const el = document.getElementById(sectionId);
   if (el) el.classList.add('active');
+
+  // Active nav highlighting
+  document.querySelectorAll('#navbar ul li a').forEach(link => link.classList.remove('nav-active'));
+  const sectionNavMap = {
+    'home-section': "showSection('home-section')",
+    'dashboard-section': "showSection('dashboard-section')",
+    'profile-section': "showSection('profile-section')",
+    'notifications-section': "showSection('notifications-section')",
+    'leaderboard-section': "showSection('leaderboard-section')"
+  };
+  const onclickMatch = sectionNavMap[sectionId];
+  if (onclickMatch) {
+    const navLink = document.querySelector(`#navbar a[onclick*="${onclickMatch.replace(/'/g, "\\'")}"]`);
+    if (navLink) navLink.classList.add('nav-active');
+  }
+
   if (sectionId === 'home-section') renderHome();
   if (sectionId === 'dashboard-section') renderDashboard();
   if (sectionId === 'profile-section') renderProfile();
@@ -673,7 +689,7 @@ function logout() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   const loginForm = document.getElementById('login-form');
   const logoutBtn = document.getElementById('logout-btn');
   const darkModeToggle = document.getElementById('darkmode-toggle');
@@ -683,17 +699,17 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', function(e) { e.preventDefault(); logout(); });
+    logoutBtn.addEventListener('click', function (e) { e.preventDefault(); logout(); });
   }
 
   if (darkModeToggle) {
-    darkModeToggle.addEventListener('click', function(e) { e.preventDefault(); toggleDarkMode(); });
+    darkModeToggle.addEventListener('click', function (e) { e.preventDefault(); toggleDarkMode(); });
   }
 
   if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); document.getElementById('darkmode-toggle').textContent = '☀️'; }
 
   const demoModeEnabled = initializeDemoModeIfNeeded();
-  
+
   // Check for login callback or existing session
   refreshStudentsData().then(() => {
     if (demoModeEnabled) {
@@ -757,6 +773,23 @@ function renderBanner(container) {
   container.innerHTML = bannerHtml;
 }
 
+function getCountdownBadge(visitDateStr) {
+  try {
+    const visitDate = new Date(visitDateStr + ' 00:00:00');
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const diffMs = visitDate - now;
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return '<span class="countdown-badge countdown-past">Completed</span>';
+    if (diffDays === 0) return '<span class="countdown-badge countdown-today">Today!</span>';
+    if (diffDays === 1) return '<span class="countdown-badge countdown-soon">Tomorrow</span>';
+    if (diffDays <= 7) return `<span class="countdown-badge countdown-soon">${diffDays} days left</span>`;
+    return `<span class="countdown-badge countdown-later">${diffDays} days left</span>`;
+  } catch (e) {
+    return '';
+  }
+}
+
 function renderCompaniesList(container) {
   const companiesHtml = `
     <div class="companies-section">
@@ -768,6 +801,7 @@ function renderCompaniesList(container) {
               <h4 style="margin: 0 0 0.5rem 0;">${company.name}</h4>
               <span class="company-date">📍 ${company.visitDate}</span>
             </div>
+            ${getCountdownBadge(company.visitDate)}
             <p style="margin: 0.3rem 0;"><strong>Position:</strong> ${company.position}</p>
             <p style="margin: 0.3rem 0;"><strong>Salary Range:</strong> ${company.salary}</p>
             <p style="margin: 0.3rem 0;"><strong>CTC:</strong> ${company.ctc}</p>
@@ -866,10 +900,10 @@ function renderHome() {
   const title = document.getElementById('home-title');
   const bannerContainer = document.getElementById('home-banner-container');
   const homeContent = document.getElementById('home-content');
-  
+
   title.textContent = '';
   bannerContainer.innerHTML = '';
-  
+
   homeContent.innerHTML = `
     <article class="home-post-card">
       <img
@@ -887,7 +921,7 @@ function renderHome() {
     <h3 style="margin-top: 2rem; margin-bottom: 1.5rem;">Our Recruiting Partners</h3>
     <div id="companies-grid-container"></div>
   `;
-  
+
   renderCompaniesGrid(document.getElementById('companies-grid-container'));
 }
 
@@ -897,9 +931,9 @@ function renderCompaniesGrid(container) {
       <h4 style="text-align: center; margin-bottom: 1.5rem; color: #FEC524;">IT Product Companies (AI, DS, ML, Cloud, Gaming, Cyber-security, Fintech)</h4>
       <div class="companies-grid">
         ${upcomingCompanies.map(company => {
-          const logoUrl = getCompanyLogoUrl(company.name);
-          const initials = getCompanyInitials(company.name);
-          return `
+    const logoUrl = getCompanyLogoUrl(company.name);
+    const initials = getCompanyInitials(company.name);
+    return `
           <div class="company-grid-card">
             <div class="company-logo-wrap">
               <img class="company-logo-img" src="${logoUrl}" alt="${company.name} logo" ${logoUrl ? '' : 'style="display:none;"'} onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
@@ -909,7 +943,7 @@ function renderCompaniesGrid(container) {
             <p style="margin: 0; font-size: 0.85rem; text-align: center; color: #999;">${company.position}</p>
           </div>
         `;
-        }).join('')}
+  }).join('')}
       </div>
     </div>
   `;
@@ -1543,7 +1577,7 @@ function renderDashboard() {
   if (topSortContainer) {
     topSortContainer.innerHTML = '';
   }
-  
+
   if (isStaff) {
     title.textContent = '';
     renderUnifiedAnalytics(chartsContainer);
@@ -1633,6 +1667,10 @@ function initializeDashboardFilters(staffView, highlightId = null) {
   container.innerHTML = `
     <div class="dashboard-filter-toolbar">
       <button type="button" id="dashboard-filter-toggle" class="dashboard-filter-btn">Filters</button>
+      <select id="dashboard-dept-dropdown" class="dashboard-dept-dropdown" aria-label="Filter by department">
+        <option value="">All Depts</option>
+        ${departments.map(d => `<option value="${d}">${d}</option>`).join('')}
+      </select>
       <div class="dashboard-toolbar-search-wrap">
         <input type="search" id="dashboard-search-input" class="dashboard-toolbar-search" placeholder="Search students" value="${dashboardSearchQuery}">
       </div>
@@ -1870,6 +1908,20 @@ function initializeDashboardFilters(staffView, highlightId = null) {
   if (searchInput) {
     searchInput.addEventListener('input', (event) => {
       dashboardSearchQuery = event.target.value || '';
+      renderTable(filterDashboardRowsBySearch(dashboardFilteredStudents, dashboardSearchQuery), staffView, highlightId, currentDashboardSortKey);
+    });
+  }
+
+  const deptDropdown = document.getElementById('dashboard-dept-dropdown');
+  if (deptDropdown) {
+    deptDropdown.addEventListener('change', () => {
+      const selectedDept = deptDropdown.value;
+      if (selectedDept) {
+        const deptFiltered = students.filter(s => String(s.dept || '').trim() === selectedDept);
+        dashboardFilteredStudents = [...deptFiltered];
+      } else {
+        dashboardFilteredStudents = [...getDefaultAnalyticsSortedStudents()];
+      }
       renderTable(filterDashboardRowsBySearch(dashboardFilteredStudents, dashboardSearchQuery), staffView, highlightId, currentDashboardSortKey);
     });
   }
@@ -2246,8 +2298,8 @@ function buildProfileViewHtml(student, options = {}) {
       <div class="card profile-summary-card profile-summary-card--identity">
         <div class="profile-summary-header" style="flex-direction: column; align-items: center; text-align: center; gap: 1rem;">
           ${displayPhoto
-            ? `<img src="${displayPhoto}" alt="${displayName}" class="profile-avatar-medium" style="width: 120px; height: 120px; border-radius: 50%;">`
-            : `<div class="profile-avatar-fallback profile-avatar-medium" style="width: 120px; height: 120px;">${(displayName || 'S').charAt(0).toUpperCase()}</div>`}
+      ? `<img src="${displayPhoto}" alt="${displayName}" class="profile-avatar-medium" style="width: 120px; height: 120px; border-radius: 50%;">`
+      : `<div class="profile-avatar-fallback profile-avatar-medium" style="width: 120px; height: 120px;">${(displayName || 'S').charAt(0).toUpperCase()}</div>`}
           <div class="profile-identity-block" style="width: 100%;">
             <h3 style="margin-bottom: 0.25rem;">${displayName}</h3>
             <p style="margin: 0; font-size: 0.9rem; color: #999;">${student.dept || 'Student'} • Year ${student.year || 'N/A'}</p>
@@ -2293,7 +2345,7 @@ function buildProfileViewHtml(student, options = {}) {
           <h4 class="profile-box-title" style="margin-bottom: 0;">LeetCode</h4>
           <div style="text-align: right; font-size: 0.85rem;">
             ${(!inlineProfileEdit && !student.leetcodeUsername)
-              ? `
+      ? `
                 <div class="leetcode-username-quick-set">
                   <input
                     type="text"
@@ -2304,7 +2356,7 @@ function buildProfileViewHtml(student, options = {}) {
                   <button type="button" id="${usernameSaveId}" class="analytics-profile-action-btn leetcode-username-quick-save">Save</button>
                 </div>
               `
-              : `<div style="color: #999;">@${buildInlineFieldControl('leetcodeUsername', student.leetcodeUsername || 'Not set')}</div>`}
+      : `<div style="color: #999;">@${buildInlineFieldControl('leetcodeUsername', student.leetcodeUsername || 'Not set')}</div>`}
             <div style="color: #666; font-size: 0.8rem;">
               Rank ${student.leetcodeRanking ? '#' + Number(student.leetcodeRanking).toLocaleString() : 'N/A'}
             </div>
@@ -2319,22 +2371,100 @@ function buildProfileViewHtml(student, options = {}) {
           <div><strong>CGPA:</strong> <span>${buildInlineFieldControl('gradePoints', student.gradePoints || 'N/A')}</span></div>
           <div><strong>12th %:</strong> <span>${buildInlineFieldControl('twelfthPercentage', twelfthPercentage)}</span></div>
           <div><strong>10th %:</strong> <span>${buildInlineFieldControl('tenthPercentage', tenthPercentage)}</span></div>
-          <div><strong>Diploma %:</strong> <span>${buildInlineFieldControl('diplomaPercentage', student.diplomaPercentage ?? 'N/A')}</span></div>
+          ${inlineProfileEdit || (student.diplomaPercentage != null && student.diplomaPercentage !== '') ? `<div><strong>Diploma %:</strong> <span>${buildInlineFieldControl('diplomaPercentage', student.diplomaPercentage ?? 'N/A')}</span></div>` : ''}
           <div><strong>Register No:</strong> <span>${buildInlineFieldControl('registerNo', student.registerNo || 'N/A')}</span></div>
-          <div><strong>Section:</strong> <span>${buildInlineFieldControl('section', student.section || 'N/A')}</span></div>
-          <div><strong>Gender:</strong> <span>${buildInlineFieldControl('gender', student.gender || 'N/A')}</span></div>
+          ${inlineProfileEdit || (student.section && student.section !== '') ? `<div><strong>Section:</strong> <span>${buildInlineFieldControl('section', student.section || 'N/A')}</span></div>` : ''}
+          ${inlineProfileEdit || (student.gender && student.gender !== '') ? `<div><strong>Gender:</strong> <span>${buildInlineFieldControl('gender', student.gender || 'N/A')}</span></div>` : ''}
         </div>
       </div>
     </div>
+
+    ${(() => {
+      // AI Placement Readiness Score
+      const cgpa = Number(student.gradePoints || 0);
+      const leetcode = Number(student.leetcodeSolvedAll || 0);
+      const internships = Number(student.internships || 0);
+      const certs = Number(student.certifications || 0);
+      const twelfth = Number(student.twelfthPercentage || 0);
+
+      // Normalized components (out of 100)
+      const cgpaNorm = Math.min(cgpa / 10, 1) * 100;
+      const leetcodeNorm = Math.min(leetcode / 300, 1) * 100;
+      const internNorm = Math.min(internships / 3, 1) * 100;
+      const certNorm = Math.min(certs / 5, 1) * 100;
+      const twelfthNorm = Math.min(twelfth / 100, 1) * 100;
+
+      // Weighted score
+      const readiness = Math.round(
+        cgpaNorm * 0.25 + leetcodeNorm * 0.30 + internNorm * 0.20 + certNorm * 0.15 + twelfthNorm * 0.10
+      );
+
+      const scoreColor = readiness >= 75 ? '#34d399' : readiness >= 50 ? '#fbbf24' : readiness >= 30 ? '#fb923c' : '#f87171';
+      const scoreLabel = readiness >= 75 ? 'Excellent' : readiness >= 50 ? 'Good' : readiness >= 30 ? 'Fair' : 'Needs Work';
+
+      // Personalized tips based on weakest areas
+      const areas = [
+        { name: 'LeetCode', norm: leetcodeNorm, weight: 30, tip: leetcode < 50 ? 'Start solving LeetCode daily — aim for 50 easy problems first.' : leetcode < 150 ? `Solve ${150 - leetcode} more problems to cross the 150 mark.` : 'Great coding progress! Try more medium/hard problems.' },
+        { name: 'CGPA', norm: cgpaNorm, weight: 25, tip: cgpa < 7 ? 'Focus on improving your GPA this semester.' : cgpa < 8.5 ? 'Push for 8.5+ CGPA to unlock more opportunities.' : 'Strong academics!' },
+        { name: 'Internships', norm: internNorm, weight: 20, tip: internships === 0 ? 'Apply for at least 1 internship this break.' : internships < 2 ? 'One more internship will significantly boost your profile.' : 'Great internship experience!' },
+        { name: 'Certifications', norm: certNorm, weight: 15, tip: certs === 0 ? 'Get 1-2 relevant certifications (AWS, Google, or Coursera).' : certs < 3 ? `${3 - certs} more certification(s) would strengthen your profile.` : 'Well-certified!' },
+        { name: '12th %', norm: twelfthNorm, weight: 10, tip: '' }
+      ];
+
+      const weakest = areas.filter(a => a.tip && a.norm < 75).sort((a, b) => a.norm - b.norm).slice(0, 2);
+
+      const circumference = 2 * Math.PI * 54;
+      const dashOffset = circumference - (readiness / 100) * circumference;
+
+      return `
+    <div class="card readiness-score-card" style="margin-bottom: 1rem;">
+      <div class="readiness-content">
+        <div class="readiness-chart-wrap">
+          <svg class="readiness-ring" viewBox="0 0 120 120" width="120" height="120">
+            <circle cx="60" cy="60" r="54" stroke="rgba(255,255,255,0.08)" stroke-width="8" fill="none"/>
+            <circle cx="60" cy="60" r="54" stroke="${scoreColor}" stroke-width="8" fill="none"
+              stroke-dasharray="${circumference}" stroke-dashoffset="${dashOffset}"
+              stroke-linecap="round" transform="rotate(-90 60 60)"
+              style="transition: stroke-dashoffset 1s ease-out;"/>
+            <text x="60" y="55" text-anchor="middle" fill="${scoreColor}" font-size="28" font-weight="700">${readiness}</text>
+            <text x="60" y="72" text-anchor="middle" fill="#999" font-size="10">/ 100</text>
+          </svg>
+          <div class="readiness-label" style="color:${scoreColor};">${scoreLabel}</div>
+        </div>
+        <div class="readiness-details">
+          <h4 class="profile-box-title" style="margin-bottom:0.5rem;">🎯 Placement Readiness</h4>
+          <div class="readiness-bars">
+            ${areas.filter(a => a.name !== '12th %' || twelfth > 0).map(a => `
+              <div class="readiness-bar-row">
+                <span class="readiness-bar-label">${a.name}</span>
+                <div class="readiness-bar-track">
+                  <div class="readiness-bar-fill" style="width:${Math.round(a.norm)}%; background:${a.norm >= 75 ? '#34d399' : a.norm >= 50 ? '#fbbf24' : '#f87171'};"></div>
+                </div>
+                <span class="readiness-bar-pct">${Math.round(a.norm)}%</span>
+              </div>
+            `).join('')}
+          </div>
+          ${weakest.length > 0 ? `
+            <div class="readiness-tips">
+              <strong style="font-size:0.82rem;color:#FEC524;">💡 Tips to improve:</strong>
+              <ul style="margin:0.25rem 0 0 1rem;padding:0;font-size:0.82rem;color:#bbb;">
+                ${weakest.map(a => `<li>${a.tip}</li>`).join('')}
+              </ul>
+            </div>
+          ` : '<p style="font-size:0.82rem;color:#34d399;margin-top:0.5rem;">✨ You\'re placement-ready! Keep it up.</p>'}
+        </div>
+      </div>
+    </div>`;
+    })()}
 
     <div class="profile-details-row" style="margin-bottom: 1rem;">
       <div class="card profile-percentile-card" style="margin-bottom: 0;">
         <h4 class="profile-box-title" style="margin-bottom: 0.75rem;">Company Preferences & Achievements</h4>
         <div class="profile-percentile-list">
-          <div class="profile-percentile-item"><strong>Gender Specific Roles:</strong> ${buildInlineFieldControl('preferredRoles', student.preferredRoles || 'N/A')}</div>
-          <div class="profile-percentile-item"><strong>Shift Priority:</strong> ${buildInlineFieldControl('preferredShift', student.preferredShift || 'N/A')}</div>
-          <div class="profile-percentile-item"><strong>Travel Priority:</strong> ${buildInlineFieldControl('travelPriority', student.travelPriority || 'N/A')}</div>
-          <div class="profile-percentile-item"><strong>Achievements:</strong> ${buildInlineFieldControl('achievements', student.achievements || 'N/A')}</div>
+          ${inlineProfileEdit || student.preferredRoles ? `<div class="profile-percentile-item"><strong>Gender Specific Roles:</strong> ${buildInlineFieldControl('preferredRoles', student.preferredRoles || 'N/A')}</div>` : ''}
+          ${inlineProfileEdit || student.preferredShift ? `<div class="profile-percentile-item"><strong>Shift Priority:</strong> ${buildInlineFieldControl('preferredShift', student.preferredShift || 'N/A')}</div>` : ''}
+          ${inlineProfileEdit || student.travelPriority ? `<div class="profile-percentile-item"><strong>Travel Priority:</strong> ${buildInlineFieldControl('travelPriority', student.travelPriority || 'N/A')}</div>` : ''}
+          ${inlineProfileEdit || student.achievements ? `<div class="profile-percentile-item"><strong>Achievements:</strong> ${buildInlineFieldControl('achievements', student.achievements || 'N/A')}</div>` : ''}
         </div>
       </div>
 
@@ -2344,11 +2474,11 @@ function buildProfileViewHtml(student, options = {}) {
           <div class="profile-percentile-item"><strong>Placement Status:</strong> ${buildInlineFieldControl('placementStatus', student.placementStatus || getPlacementStatusLabel(student) || 'N/A')}</div>
           <div class="profile-percentile-item"><strong>Internships:</strong> ${buildInlineFieldControl('internships', student.internships ?? 'N/A')}</div>
           <div class="profile-percentile-item"><strong>Certifications:</strong> ${buildInlineFieldControl('certifications', student.certifications ?? 'N/A')}</div>
-          <div class="profile-percentile-item"><strong>Roll No:</strong> ${buildInlineFieldControl('rollNo', student.rollNo || 'N/A')}</div>
+          ${inlineProfileEdit || student.rollNo ? `<div class="profile-percentile-item"><strong>Roll No:</strong> ${buildInlineFieldControl('rollNo', student.rollNo || 'N/A')}</div>` : ''}
           <div class="profile-percentile-item"><strong>College Mail:</strong> ${buildInlineFieldControl('collegeMail', student.collegeMail || student.email || 'N/A')}</div>
-          <div class="profile-percentile-item"><strong>Personal Mail:</strong> ${buildInlineFieldControl('personalMail', student.personalMail || 'N/A')}</div>
-          <div class="profile-percentile-item"><strong>Contact No:</strong> ${buildInlineFieldControl('contactNo', student.contactNo || 'N/A')}</div>
-          <div class="profile-percentile-item"><strong>Address:</strong> ${buildInlineFieldControl('address', student.address || 'N/A')}</div>
+          ${inlineProfileEdit || student.personalMail ? `<div class="profile-percentile-item"><strong>Personal Mail:</strong> ${buildInlineFieldControl('personalMail', student.personalMail || 'N/A')}</div>` : ''}
+          ${inlineProfileEdit || student.contactNo ? `<div class="profile-percentile-item"><strong>Contact No:</strong> ${buildInlineFieldControl('contactNo', student.contactNo || 'N/A')}</div>` : ''}
+          ${inlineProfileEdit || student.address ? `<div class="profile-percentile-item"><strong>Address:</strong> ${buildInlineFieldControl('address', student.address || 'N/A')}</div>` : ''}
           <div class="profile-percentile-item"><strong>Resume Link:</strong> ${inlineProfileEdit ? buildInlineFieldControl('resumeLink', resumeLink || 'N/A') : (resumeLink ? `<a href="${safeResumeLink}" target="_blank" rel="noopener noreferrer">View Resume</a>` : 'N/A')}</div>
         </div>
       </div>
@@ -2574,8 +2704,8 @@ function renderStudentProfileEditForm(profileContent, student) {
       <div class="card profile-summary-card profile-summary-card--identity">
         <div class="profile-summary-header" style="flex-direction: column; align-items: center; text-align: center; gap: 1rem;">
           ${displayPhoto
-            ? `<img src="${displayPhoto}" alt="${displayName}" class="profile-avatar-medium" style="width: 120px; height: 120px; border-radius: 50%;">`
-            : `<div class="profile-avatar-fallback profile-avatar-medium" style="width: 120px; height: 120px;">${(displayName || 'S').charAt(0).toUpperCase()}</div>`}
+      ? `<img src="${displayPhoto}" alt="${displayName}" class="profile-avatar-medium" style="width: 120px; height: 120px; border-radius: 50%;">`
+      : `<div class="profile-avatar-fallback profile-avatar-medium" style="width: 120px; height: 120px;">${(displayName || 'S').charAt(0).toUpperCase()}</div>`}
           <div class="profile-identity-block" style="width: 100%; display: grid; gap: 0.5rem;">
             <span>${student.name || 'N/A'}</span>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
@@ -3004,8 +3134,8 @@ function renderTable(data, staffView, highlightId, sortKey = currentDashboardSor
   </tr></thead><tbody>
     ${data.map(s => `<tr class="${staffView ? 'analytics-row' : ''}" ${staffView ? `data-student-id="${s.id}"` : ''}${!staffView && highlightId === s.id ? ' style="background:rgba(254, 197, 36, 0.15);border-left:3px solid #FEC524;"' : ''}>
       <td>${staffView
-        ? `<span id="val-name-${s.id}">${s.name || 'N/A'}</span><input type="text" id="input-name-${s.id}" class="dashboard-inline-edit-control" value="${escapeHtmlAttribute(s.name || '')}" style="display:none;">`
-        : (s.name || 'N/A')}
+      ? `<span id="val-name-${s.id}">${s.name || 'N/A'}</span><input type="text" id="input-name-${s.id}" class="dashboard-inline-edit-control" value="${escapeHtmlAttribute(s.name || '')}" style="display:none;">`
+      : (s.name || 'N/A')}
       </td>
       ${orderedColumns.map((key) => `<td>${columnDefs[key].cell(s)}</td>`).join('')}
     </tr>`).join('')}
@@ -3037,9 +3167,9 @@ function renderTable(data, staffView, highlightId, sortKey = currentDashboardSor
 function renderNotifications() {
   const notificationsContent = document.getElementById('notifications-content');
   const companiesContainer = document.getElementById('companies-container');
-  
+
   renderCompaniesList(companiesContainer);
-  
+
   notificationsContent.innerHTML = `
     <div style="margin-top: 2rem;">
       <h3>Recent Announcements</h3>
@@ -3061,10 +3191,10 @@ function renderProfile() {
           <button type="button" id="student-profile-edit-btn" class="analytics-profile-action-btn">${analyticsProfileEditMode ? 'Cancel Edit' : 'Edit Profile'}</button>
         </div>
         ${buildProfileViewHtml(currentUser, {
-          leetcodeContainerId: 'leetcode-stats-container',
-          showLinkedInButton: true,
-          inlineProfileEdit: analyticsProfileEditMode,
-        })}
+        leetcodeContainerId: 'leetcode-stats-container',
+        showLinkedInButton: true,
+        inlineProfileEdit: analyticsProfileEditMode,
+      })}
         ${analyticsProfileEditMode ? `
           <div class="analytics-profile-edit-actions" style="justify-content: flex-end;">
             <button type="button" id="analytics-profile-save" class="dashboard-filter-action-btn">Save</button>
@@ -3148,7 +3278,7 @@ function renderProfile() {
 async function fetchAndDisplayLeetCodeStats(username, containerId = 'leetcode-stats-container') {
   const container = document.getElementById(containerId);
   if (!container) return;
-  
+
   container.innerHTML = '<div class="card" style="padding: 1rem;"><p>Loading LeetCode stats...</p></div>';
 
   try {
@@ -3273,69 +3403,102 @@ function renderLeaderboard() {
   const dynamicRank = [...studentsData]
     .sort((a, b) => getDynamicScore(b) - getDynamicScore(a));
 
-  const renderRows = (list, valueFn) => list.map((student, index) => {
-    const isCurrentUser = !isStaff && currentUser && student.id === currentUser.id;
-    return `
-      <tr${isCurrentUser ? ' style="background: rgba(254, 197, 36, 0.15); border-left: 3px solid #FEC524;"' : ''}>
-        <td>${index + 1}</td>
-        <td>${student.name || 'N/A'}</td>
-        <td>${student.dept || 'N/A'}</td>
-        <td>${valueFn(student)}</td>
-      </tr>
-    `;
-  }).join('');
+  const rankMedal = (index) => {
+    if (index === 0) return '🥇';
+    if (index === 1) return '🥈';
+    if (index === 2) return '🥉';
+    return `<span style="color:#999;font-size:0.9rem;">${index + 1}</span>`;
+  };
+
+  const avatarInitial = (name) => {
+    const initial = (name || 'S').charAt(0).toUpperCase();
+    const colors = ['#4F7FFF', '#22d3ee', '#f472b6', '#a78bfa', '#34d399', '#fb923c', '#facc15'];
+    const colorIndex = initial.charCodeAt(0) % colors.length;
+    return `<span class="lb-avatar" style="background:${colors[colorIndex]};">${initial}</span>`;
+  };
+
+  const INITIAL_SHOW = 10;
+
+  const renderRows = (list, valueFn, tableId) => {
+    return list.map((student, index) => {
+      const isCurrentUser = !isStaff && currentUser && student.id === currentUser.id;
+      const rowClass = isCurrentUser ? 'lb-row-current' : '';
+      const hiddenClass = index >= INITIAL_SHOW ? 'lb-row-hidden' : '';
+      return `
+        <tr class="${rowClass} ${hiddenClass}" data-lb-table="${tableId}">
+          <td class="lb-rank-cell">${rankMedal(index)}</td>
+          <td class="lb-name-cell">${avatarInitial(student.name)} ${student.name || 'N/A'}</td>
+          <td>${student.dept || 'N/A'}</td>
+          <td class="lb-value-cell">${valueFn(student)}</td>
+        </tr>
+      `;
+    }).join('');
+  };
+
+  const showAllButton = (tableId, total) => {
+    if (total <= INITIAL_SHOW) return '';
+    return `<div style="text-align:center;margin-top:0.5rem;">
+      <button type="button" class="lb-show-all-btn" data-lb-target="${tableId}" onclick="
+        this.parentElement.parentElement.querySelectorAll('tr.lb-row-hidden[data-lb-table=${tableId}]').forEach(r => r.classList.remove('lb-row-hidden'));
+        this.style.display='none';
+      ">Show All ${total} Students ▾</button>
+    </div>`;
+  };
 
   leaderboardContent.innerHTML = `
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
-      <div class="card" style="padding: 1.1rem;">
-        <h3 style="margin-top:0; margin-bottom:0.9rem; text-align:center;">Coding Problems Leaderboard</h3>
-        <table>
+      <div class="card lb-card">
+        <h3 class="lb-card-title">💻 Coding Problems</h3>
+        <table class="lb-table">
           <thead>
             <tr>
-              <th style="width:70px;">Rank</th>
+              <th style="width:60px;">Rank</th>
               <th>Name</th>
-              <th style="width:100px;">Dept</th>
-              <th style="width:140px;">Problems</th>
+              <th style="width:80px;">Dept</th>
+              <th style="width:100px;">Solved</th>
             </tr>
           </thead>
           <tbody>
-            ${renderRows(codingRank, (student) => Number(student.leetcodeSolvedAll || 0))}
+            ${renderRows(codingRank, (student) => `<strong>${Number(student.leetcodeSolvedAll || 0)}</strong>`, 'coding')}
           </tbody>
         </table>
+        ${showAllButton('coding', codingRank.length)}
       </div>
 
-      <div class="card" style="padding: 1.1rem;">
-        <h3 style="margin-top:0; margin-bottom:0.9rem; text-align:center;">CGPA Leaderboard</h3>
-        <table>
+      <div class="card lb-card">
+        <h3 class="lb-card-title">📚 CGPA</h3>
+        <table class="lb-table">
           <thead>
             <tr>
-              <th style="width:70px;">Rank</th>
+              <th style="width:60px;">Rank</th>
               <th>Name</th>
-              <th style="width:100px;">Dept</th>
-              <th style="width:140px;">CGPA</th>
+              <th style="width:80px;">Dept</th>
+              <th style="width:100px;">CGPA</th>
             </tr>
           </thead>
           <tbody>
-            ${renderRows(cgpaRank, (student) => Number(student.gradePoints || 0).toFixed(2))}
+            ${renderRows(cgpaRank, (student) => `<strong>${Number(student.gradePoints || 0).toFixed(2)}</strong>`, 'cgpa')}
           </tbody>
         </table>
+        ${showAllButton('cgpa', cgpaRank.length)}
       </div>
 
-      <div class="card" style="padding: 1.1rem;">
-        <h3 style="margin-top:0; margin-bottom:0.9rem; text-align:center;">Dynamic Score Leaderboard</h3>
-        <table>
+      <div class="card lb-card">
+        <h3 class="lb-card-title">🏆 Dynamic Score</h3>
+        <table class="lb-table">
           <thead>
             <tr>
-              <th style="width:70px;">Rank</th>
+              <th style="width:60px;">Rank</th>
               <th>Name</th>
-              <th style="width:100px;">Dept</th>
-              <th style="width:140px;">Score / 100</th>
+              <th style="width:80px;">Dept</th>
+              <th style="width:100px;">Score</th>
             </tr>
           </thead>
           <tbody>
-            ${renderRows(dynamicRank, (student) => getDynamicScore(student).toFixed(2))}
+            ${renderRows(dynamicRank, (student) => `<strong>${getDynamicScore(student).toFixed(1)}</strong>`, 'dynamic')}
           </tbody>
         </table>
+        ${showAllButton('dynamic', dynamicRank.length)}
       </div>
     </div>
   `;
