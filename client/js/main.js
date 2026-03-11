@@ -206,7 +206,7 @@ const analyticsProfileEditableFields = [
   'tenthPercentage', 'twelfthPercentage', 'diplomaPercentage',
   'collegeMail', 'personalMail', 'email', 'contactNo', 'address',
   'resumeLink', 'preferredRoles', 'preferredShift', 'travelPriority',
-  'achievements', 'leetcodeUsername'
+  'achievements', 'leetcodeUsername', 'professionalPhotoUrl'
 ];
 
 const profileEditFieldEntries = [
@@ -464,7 +464,7 @@ function initializeDemoModeIfNeeded() {
   return true;
 }
 
-const sectionIds = ['login-section', 'home-section', 'dashboard-section', 'profile-section', 'notifications-section', 'leaderboard-section'];
+const sectionIds = ['login-section', 'home-section', 'dashboard-section', 'profile-section', 'notifications-section', 'leaderboard-section', 'compare-section', 'resources-section'];
 
 // Google Login Function
 async function loginWithGoogle() {
@@ -586,7 +586,9 @@ function showSection(sectionId) {
     'dashboard-section': "showSection('dashboard-section')",
     'profile-section': "showSection('profile-section')",
     'notifications-section': "showSection('notifications-section')",
-    'leaderboard-section': "showSection('leaderboard-section')"
+    'leaderboard-section': "showSection('leaderboard-section')",
+    'compare-section': "showSection('compare-section')",
+    'resources-section': "showSection('resources-section')"
   };
   const onclickMatch = sectionNavMap[sectionId];
   if (onclickMatch) {
@@ -599,6 +601,8 @@ function showSection(sectionId) {
   if (sectionId === 'profile-section') renderProfile();
   if (sectionId === 'notifications-section') renderNotifications();
   if (sectionId === 'leaderboard-section') renderLeaderboard();
+  if (sectionId === 'compare-section') renderCompare();
+  if (sectionId === 'resources-section') renderResources();
 }
 
 function switchLoginTab(tab, triggerElement) {
@@ -737,6 +741,8 @@ function toggleDarkMode() {
   if (activeSectionId === 'notifications-section') renderNotifications();
   if (activeSectionId === 'home-section') renderHome();
   if (activeSectionId === 'leaderboard-section') renderLeaderboard();
+  if (activeSectionId === 'compare-section') renderCompare();
+  if (activeSectionId === 'resources-section') renderResources();
 }
 
 function getChartThemeColors() {
@@ -2327,12 +2333,23 @@ function buildProfileViewHtml(student, options = {}) {
 
   return `
     <div class="profile-summary-grid" style="margin-bottom: 1rem;">
-      <div class="card profile-summary-card profile-summary-card--identity" style="position:relative;">
-        ${student.registerNo ? `<div class="profile-reg-badge">${student.registerNo}</div>` : ''}
+      <div class="card profile-summary-card profile-summary-card--identity" style="position: relative;">
+        ${student.registerNo ? `<span class="profile-reg-badge" style="position: absolute; top: 0.75rem; right: 0.75rem; width: fit-content;">${student.registerNo}</span>` : ''}
         <div class="profile-summary-header" style="flex-direction: column; align-items: center; text-align: center; gap: 1rem;">
-          ${displayPhoto
-      ? `<img src="${displayPhoto}" alt="${displayName}" class="profile-avatar-medium" style="width: 120px; height: 120px; border-radius: 50%;">`
-      : `<div class="profile-avatar-fallback profile-avatar-medium" style="width: 120px; height: 120px;">${(displayName || 'S').charAt(0).toUpperCase()}</div>`}
+          <div style="display: flex; gap: 1rem; justify-content: center; align-items: flex-start;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+              ${displayPhoto
+      ? `<img src="${displayPhoto}" alt="${displayName}" class="profile-avatar-medium" style="width: 90px; height: 90px; border-radius: 50%;">`
+      : `<div class="profile-avatar-fallback profile-avatar-medium" style="width: 90px; height: 90px;">${(displayName || 'S').charAt(0).toUpperCase()}</div>`}
+              <span style="font-size: 0.6rem; color: #666; text-transform: uppercase; letter-spacing: 0.04em;">LinkedIn</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+              ${student.professionalPhotoUrl
+      ? `<img src="${student.professionalPhotoUrl}" alt="Professional" style="width: 90px; height: 90px; border-radius: 8px; object-fit: cover; border: 2px solid rgba(254,197,36,0.35);">`
+      : `<div style="width: 90px; height: 90px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 2px dashed rgba(254,197,36,0.25); display: flex; align-items: center; justify-content: center; color: #555; font-size: 0.6rem; text-align: center; padding: 4px; line-height: 1.3;">No photo</div>`}
+              <span style="font-size: 0.6rem; color: #666; text-transform: uppercase; letter-spacing: 0.04em;">Professional</span>
+            </div>
+          </div>
           <div class="profile-identity-block" style="width: 100%;">
             <h3 style="margin-bottom: 0.25rem;">${displayName}</h3>
             <p style="margin: 0; font-size: 0.9rem; color: #999;">${student.dept || 'Student'} • Year ${student.year || 'N/A'}</p>
@@ -2518,6 +2535,133 @@ function buildProfileViewHtml(student, options = {}) {
         </div>
       </div>
     </div>
+
+    ${(() => {
+      // Profile Completeness
+      const completeness = getProfileCompleteness(student);
+      const completenessColor = completeness.percentage >= 80 ? '#34d399' : completeness.percentage >= 50 ? '#fbbf24' : '#f87171';
+      return `
+        <div class="card profile-completeness-card" style="margin-bottom: 1rem;">
+          <div class="profile-completeness-header">
+            <h4 class="profile-box-title" style="margin-bottom: 0;">📋 Profile Completeness</h4>
+            <span class="profile-completeness-pct" style="color:${completenessColor};">${completeness.percentage}%</span>
+          </div>
+          <div class="profile-completeness-bar-track">
+            <div class="profile-completeness-bar-fill" style="width:${completeness.percentage}%;background:${completenessColor};"></div>
+          </div>
+          ${completeness.missing.length > 0 ? `
+            <div class="profile-completeness-missing">
+              <strong>Missing:</strong> ${completeness.missing.join(', ')}
+            </div>
+          ` : '<p style="color:#34d399;font-size:0.85rem;margin:0.5rem 0 0;">✨ Your profile is complete!</p>'}
+        </div>
+      `;
+    })()}
+
+    ${(() => {
+      // Achievement Badges
+      const badges = getStudentBadges(student);
+      return `
+        <div class="card profile-badges-card" style="margin-bottom: 1rem;">
+          <h4 class="profile-box-title" style="margin-bottom: 0.75rem;">🏅 Achievement Badges</h4>
+          ${renderBadgesHtml(badges)}
+        </div>
+      `;
+    })()}
+
+    ${(() => {
+      // Peer Benchmarking
+      const benchmark = getPeerBenchmark(student);
+      return `
+        <div class="card profile-benchmark-card" style="margin-bottom: 1rem;">
+          <h4 class="profile-box-title" style="margin-bottom: 0.75rem;">📈 Peer Benchmarking</h4>
+          <div class="benchmark-grid">
+            ${benchmark.metrics.map(m => `
+              <div class="benchmark-item">
+                <div class="benchmark-item-header">
+                  <span class="benchmark-metric-label">${m.label}</span>
+                  <span class="benchmark-metric-value">${m.value}</span>
+                </div>
+                <div class="benchmark-bars">
+                  <div class="benchmark-bar-row">
+                    <span class="benchmark-bar-context">Dept (avg ${m.avgDept})</span>
+                    <div class="benchmark-bar-track">
+                      <div class="benchmark-bar-fill benchmark-fill-dept" style="width:${Math.min(m.percentileDept, 100)}%"></div>
+                    </div>
+                    <span class="benchmark-pct">Top ${100 - m.percentileDept}%</span>
+                  </div>
+                  <div class="benchmark-bar-row">
+                    <span class="benchmark-bar-context">All (avg ${m.avgAll})</span>
+                    <div class="benchmark-bar-track">
+                      <div class="benchmark-bar-fill benchmark-fill-all" style="width:${Math.min(m.percentileAll, 100)}%"></div>
+                    </div>
+                    <span class="benchmark-pct">Top ${100 - m.percentileAll}%</span>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    })()}
+
+    ${(() => {
+      // Smart Company Recommendations
+      const recs = getCompanyRecommendations(student);
+      if (!recs.length) return '';
+      return `
+        <div class="card profile-recs-card" style="margin-bottom: 1rem;">
+          <h4 class="profile-box-title" style="margin-bottom: 0.75rem;">🎯 Recommended Companies</h4>
+          <div class="recs-grid">
+            ${recs.map(r => {
+              const logoUrl = getCompanyLogoUrl(r.name);
+              return `
+                <div class="rec-card">
+                  <div class="rec-card-header">
+                    ${logoUrl ? `<img src="${logoUrl}" alt="${r.name}" class="rec-logo">` : ''}
+                    <div>
+                      <strong>${r.name}</strong>
+                      <span>${r.position}</span>
+                    </div>
+                  </div>
+                  <div class="rec-card-info">
+                    <span>💰 ${r.salary}</span>
+                    <span>📅 ${r.visitDate}</span>
+                  </div>
+                  <div class="rec-match-bar">
+                    <div class="rec-match-fill" style="width:${Math.min(r.score, 100)}%"></div>
+                  </div>
+                  <span class="rec-match-label">${r.score}% match</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    })()}
+
+    ${(() => {
+      // Eligibility Checker
+      const results = getEligibilityResults(student);
+      const eligibleCount = results.filter(r => r.eligible).length;
+      return `
+        <div class="card profile-eligibility-card" style="margin-bottom: 1rem;">
+          <h4 class="profile-box-title" style="margin-bottom: 0.75rem;">✅ Company Eligibility (${eligibleCount}/${results.length} eligible)</h4>
+          <div class="eligibility-list">
+            ${results.map(r => `
+              <div class="eligibility-item ${r.eligible ? 'eligible' : 'not-eligible'}">
+                <span class="eligibility-status">${r.eligible ? '✅' : '❌'}</span>
+                <div class="eligibility-info">
+                  <strong>${r.company}</strong>
+                  <span>${r.position} • ${r.salary} • ${r.visitDate}</span>
+                  ${!r.eligible ? `<span class="eligibility-reason">${r.reasons.join('; ')}</span>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    })()}
   `;
 }
 
@@ -2736,11 +2880,28 @@ function renderStudentProfileEditForm(profileContent, student) {
     </div>
 
     <div class="profile-summary-grid" style="margin-bottom: 1rem;">
-      <div class="card profile-summary-card profile-summary-card--identity">
+      <div class="card profile-summary-card profile-summary-card--identity" style="position: relative;">
+        ${student.registerNo ? `<span class="profile-reg-badge" style="position: absolute; top: 0.75rem; right: 0.75rem; width: fit-content;">${student.registerNo}</span>` : ''}
         <div class="profile-summary-header" style="flex-direction: column; align-items: center; text-align: center; gap: 1rem;">
-          ${displayPhoto
-      ? `<img src="${displayPhoto}" alt="${displayName}" class="profile-avatar-medium" style="width: 120px; height: 120px; border-radius: 50%;">`
-      : `<div class="profile-avatar-fallback profile-avatar-medium" style="width: 120px; height: 120px;">${(displayName || 'S').charAt(0).toUpperCase()}</div>`}
+          <div style="display: flex; gap: 1rem; justify-content: center; align-items: flex-start;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+              ${displayPhoto
+      ? `<img src="${displayPhoto}" alt="${displayName}" class="profile-avatar-medium" style="width: 90px; height: 90px; border-radius: 50%;">`
+      : `<div class="profile-avatar-fallback profile-avatar-medium" style="width: 90px; height: 90px;">${(displayName || 'S').charAt(0).toUpperCase()}</div>`}
+              <span style="font-size: 0.6rem; color: #666; text-transform: uppercase; letter-spacing: 0.04em;">LinkedIn</span>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+              ${student.professionalPhotoUrl
+      ? `<img src="${student.professionalPhotoUrl}" alt="Professional" style="width: 90px; height: 90px; border-radius: 8px; object-fit: cover; border: 2px solid rgba(254,197,36,0.35);">`
+      : `<div style="width: 90px; height: 90px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 2px dashed rgba(254,197,36,0.25); display: flex; align-items: center; justify-content: center; color: #555; font-size: 0.6rem; text-align: center; padding: 4px; line-height: 1.3;">No photo</div>`}
+              <span style="font-size: 0.6rem; color: #666; text-transform: uppercase; letter-spacing: 0.04em;">Professional</span>
+              <input type="text" data-student-profile-field="professionalPhotoUrl"
+                class="dashboard-inline-edit-control"
+                style="margin-top: 0.2rem; font-size: 0.6rem; width: 90px;"
+                placeholder="Photo URL"
+                value="${escapeHtmlAttribute(student.professionalPhotoUrl || '')}">
+            </div>
+          </div>
           <div class="profile-identity-block" style="width: 100%; display: grid; gap: 0.5rem;">
             <span>${student.name || 'N/A'}</span>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
@@ -3589,4 +3750,513 @@ function renderLeaderboard() {
       renderLeaderboardTables(lbSearchQuery);
     });
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPARE TOOL
+// ═══════════════════════════════════════════════════════════════
+
+let compareChartInstance = null;
+
+function renderCompare() {
+  const container = document.getElementById('compare-content');
+  if (!container) return;
+
+  const studentOptions = (Array.isArray(students) ? students : [])
+    .map(s => `<option value="${s.id}">${escapeHtmlAttribute(s.name || 'N/A')} — ${escapeHtmlAttribute(s.dept || '')} (Year ${s.year || '?'})</option>`)
+    .join('');
+
+  container.innerHTML = `
+    <div class="compare-controls">
+      <div class="compare-select-group">
+        <label for="compare-student-a">Student A</label>
+        <select id="compare-student-a"><option value="">Select student...</option>${studentOptions}</select>
+      </div>
+      <div class="compare-vs">VS</div>
+      <div class="compare-select-group">
+        <label for="compare-student-b">Student B</label>
+        <select id="compare-student-b"><option value="">Select student...</option>${studentOptions}</select>
+      </div>
+      <button type="button" id="compare-btn" class="dashboard-filter-action-btn">Compare</button>
+    </div>
+    <div id="compare-result"></div>
+  `;
+
+  document.getElementById('compare-btn').addEventListener('click', executeCompare);
+}
+
+function executeCompare() {
+  const idA = document.getElementById('compare-student-a')?.value;
+  const idB = document.getElementById('compare-student-b')?.value;
+  const result = document.getElementById('compare-result');
+  if (!result) return;
+
+  if (!idA || !idB) { showToast('Select both students to compare.', 'info'); return; }
+  if (idA === idB) { showToast('Select two different students.', 'info'); return; }
+
+  const a = getStudentById(idA);
+  const b = getStudentById(idB);
+  if (!a || !b) { showToast('Student data not found.', 'error'); return; }
+
+  const metrics = [
+    { label: 'CGPA', key: 'gradePoints', max: 10, icon: '📊' },
+    { label: 'LeetCode Solved', key: 'leetcodeSolvedAll', max: Math.max(Number(a.leetcodeSolvedAll || 0), Number(b.leetcodeSolvedAll || 0), 1), icon: '💻' },
+    { label: 'Internships', key: 'internships', max: Math.max(Number(a.internships || 0), Number(b.internships || 0), 1), icon: '🏢' },
+    { label: 'Certifications', key: 'certifications', max: Math.max(Number(a.certifications || 0), Number(b.certifications || 0), 1), icon: '📜' },
+    { label: '10th %', key: 'tenthPercentage', max: 100, icon: '🎓' },
+    { label: '12th %', key: 'twelfthPercentage', max: 100, icon: '🎓' },
+  ];
+
+  const scoreMeta = getDynamicScoreMeta(students);
+  const scoreA = getDynamicPlacementScore(a, scoreMeta);
+  const scoreB = getDynamicPlacementScore(b, scoreMeta);
+
+  const photoA = a.linkedinPhotoUrl || '';
+  const photoB = b.linkedinPhotoUrl || '';
+  const initA = (a.name || 'A').charAt(0).toUpperCase();
+  const initB = (b.name || 'B').charAt(0).toUpperCase();
+
+  result.innerHTML = `
+    <div class="compare-cards">
+      <div class="compare-card compare-card-a">
+        <div class="compare-card-photo">
+          ${photoA ? `<img src="${photoA}" alt="${escapeHtmlAttribute(a.name)}">` : `<div class="compare-avatar">${initA}</div>`}
+        </div>
+        <h3>${a.name || 'N/A'}</h3>
+        <p>${a.dept || ''} • Year ${a.year || '?'}</p>
+        <div class="compare-score">${scoreA.toFixed(1)}<span>/100</span></div>
+        <div class="compare-score-label">Placement Score</div>
+      </div>
+      <div class="compare-chart-wrap">
+        <canvas id="compare-radar-chart"></canvas>
+      </div>
+      <div class="compare-card compare-card-b">
+        <div class="compare-card-photo">
+          ${photoB ? `<img src="${photoB}" alt="${escapeHtmlAttribute(b.name)}">` : `<div class="compare-avatar">${initB}</div>`}
+        </div>
+        <h3>${b.name || 'N/A'}</h3>
+        <p>${b.dept || ''} • Year ${b.year || '?'}</p>
+        <div class="compare-score">${scoreB.toFixed(1)}<span>/100</span></div>
+        <div class="compare-score-label">Placement Score</div>
+      </div>
+    </div>
+    <div class="compare-bars">
+      ${metrics.map(m => {
+        const vA = Number(a[m.key] || 0);
+        const vB = Number(b[m.key] || 0);
+        const pA = m.max > 0 ? Math.min(vA / m.max * 100, 100) : 0;
+        const pB = m.max > 0 ? Math.min(vB / m.max * 100, 100) : 0;
+        const winner = vA > vB ? 'a' : vB > vA ? 'b' : '';
+        return `
+          <div class="compare-bar-row">
+            <span class="compare-bar-val compare-bar-val-a ${winner === 'a' ? 'winner' : ''}">${vA}</span>
+            <div class="compare-bar-track compare-bar-track-a"><div class="compare-bar-fill" style="width:${pA}%"></div></div>
+            <span class="compare-bar-label">${m.icon} ${m.label}</span>
+            <div class="compare-bar-track compare-bar-track-b"><div class="compare-bar-fill" style="width:${pB}%"></div></div>
+            <span class="compare-bar-val compare-bar-val-b ${winner === 'b' ? 'winner' : ''}">${vB}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  // Radar chart
+  const radarCanvas = document.getElementById('compare-radar-chart');
+  if (radarCanvas && typeof Chart !== 'undefined') {
+    if (compareChartInstance) compareChartInstance.destroy();
+    const chartTheme = getChartThemeColors();
+    const radarLabels = metrics.map(m => m.label);
+    const radarDataA = metrics.map(m => m.max > 0 ? (Number(a[m.key] || 0) / m.max * 100) : 0);
+    const radarDataB = metrics.map(m => m.max > 0 ? (Number(b[m.key] || 0) / m.max * 100) : 0);
+
+    compareChartInstance = new Chart(radarCanvas, {
+      type: 'radar',
+      data: {
+        labels: radarLabels,
+        datasets: [
+          { label: a.name || 'Student A', data: radarDataA, backgroundColor: 'rgba(254,197,36,0.2)', borderColor: '#FEC524', borderWidth: 2, pointBackgroundColor: '#FEC524' },
+          { label: b.name || 'Student B', data: radarDataB, backgroundColor: 'rgba(79,127,255,0.2)', borderColor: '#4F7FFF', borderWidth: 2, pointBackgroundColor: '#4F7FFF' }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            beginAtZero: true,
+            max: 100,
+            ticks: { color: chartTheme.axisTickColor, backdropColor: chartTheme.radarTickBackdrop },
+            grid: { color: chartTheme.radarGridColor },
+            pointLabels: { color: chartTheme.radarPointLabelColor, font: { size: 11 } }
+          }
+        },
+        plugins: {
+          legend: { labels: { color: chartTheme.legendColor } }
+        }
+      }
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RESOURCES / INTERVIEW PREP HUB
+// ═══════════════════════════════════════════════════════════════
+
+function renderResources() {
+  const container = document.getElementById('resources-content');
+  if (!container) return;
+
+  const resourceCategories = [
+    {
+      title: '💻 Data Structures & Algorithms',
+      icon: '💻',
+      items: [
+        { name: 'NeetCode 150 Roadmap', desc: 'Curated 150 problems covering all patterns', url: 'https://neetcode.io/roadmap' },
+        { name: 'Striver SDE Sheet', desc: '180 problems for product-based companies', url: 'https://takeuforward.org/interviews/strivers-sde-sheet-top-coding-interview-problems/' },
+        { name: 'LeetCode Patterns', desc: 'Common coding patterns to master', url: 'https://leetcode.com/explore/' },
+        { name: 'Visualgo', desc: 'Visualize data structures & algorithms', url: 'https://visualgo.net/' },
+      ]
+    },
+    {
+      title: '🧠 System Design',
+      icon: '🧠',
+      items: [
+        { name: 'System Design Primer', desc: 'Learn how to design large-scale systems', url: 'https://github.com/donnemartin/system-design-primer' },
+        { name: 'Grokking System Design', desc: 'Popular interview prep course', url: 'https://www.designgurus.io/course/grokking-the-system-design-interview' },
+        { name: 'ByteByteGo', desc: 'Visual system design explanations', url: 'https://bytebytego.com/' },
+      ]
+    },
+    {
+      title: '📝 Aptitude & Reasoning',
+      icon: '📝',
+      items: [
+        { name: 'IndiaBix', desc: 'Aptitude questions & practice tests', url: 'https://www.indiabix.com/' },
+        { name: 'PrepInsta', desc: 'Company-specific aptitude preparation', url: 'https://prepinsta.com/' },
+        { name: 'CareerRide', desc: 'Verbal & logical reasoning practice', url: 'https://www.careerride.com/' },
+      ]
+    },
+    {
+      title: '🗣️ Interview Skills',
+      icon: '🗣️',
+      items: [
+        { name: 'Pramp', desc: 'Free peer-to-peer mock interviews', url: 'https://www.pramp.com/' },
+        { name: 'InterviewBit', desc: 'Structured interview prep platform', url: 'https://www.interviewbit.com/' },
+        { name: 'STAR Method Guide', desc: 'Behavioral interview technique', url: 'https://www.themuse.com/advice/star-interview-method' },
+      ]
+    },
+    {
+      title: '📄 Resume & Portfolio',
+      icon: '📄',
+      items: [
+        { name: 'Overleaf Resume Templates', desc: 'LaTeX resume templates', url: 'https://www.overleaf.com/latex/templates/tagged/cv' },
+        { name: 'GitHub Portfolio Guide', desc: 'Build a standout developer portfolio', url: 'https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile' },
+        { name: 'FlowCV', desc: 'Free resume builder', url: 'https://flowcv.com/' },
+      ]
+    },
+    {
+      title: '☁️ Cloud & DevOps',
+      icon: '☁️',
+      items: [
+        { name: 'AWS Cloud Practitioner', desc: 'Free cloud fundamentals course', url: 'https://aws.amazon.com/training/digital/aws-cloud-practitioner-essentials/' },
+        { name: 'Google Cloud Skills', desc: 'Hands-on labs and learning paths', url: 'https://www.cloudskillsboost.google/' },
+        { name: 'Docker Getting Started', desc: 'Container fundamentals', url: 'https://docs.docker.com/get-started/' },
+      ]
+    },
+  ];
+
+  // Company-specific prep guides
+  const companyPrepGuides = [
+    { company: 'Microsoft', focus: 'DSA, OOPS, System Design', tip: 'Focus on medium-hard LeetCode. Be strong in linked lists, trees, and dynamic programming.', rounds: 'OA → 2 Technical → HR' },
+    { company: 'Amazon', focus: 'DSA, Leadership Principles', tip: 'Practice behavioral questions using STAR method. Master BFS/DFS, arrays, and strings.', rounds: 'OA (2 coding) → Technical Loop → Bar Raiser' },
+    { company: 'ServiceNow', focus: 'JavaScript, SQL, Web Dev', tip: 'Strong JavaScript fundamentals. Practice DOM manipulation and REST APIs.', rounds: 'OA → 2 Technical → Managerial' },
+    { company: 'Wells Fargo', focus: 'Java/Python, SQL, Problem Solving', tip: 'Banking domain awareness helps. Practice SQL joins and aggregations.', rounds: 'Aptitude + Coding → Technical → HR' },
+    { company: 'Dell Technologies', focus: 'OS, Networking, C/C++', tip: 'Focus on operating system concepts, networking protocols, and C programming.', rounds: 'Online Test → Technical → HR' },
+    { company: 'ThoughtWorks', focus: 'Clean Code, TDD, Agile', tip: 'Focus on writing clean, testable code. Practice pair programming concepts.', rounds: 'Coding → Code Review → Technical → Cultural' },
+  ];
+
+  // Weekly study plan
+  const weeklyPlan = [
+    { week: 'Week 1-2', focus: 'Arrays, Strings, Hashing', daily: '2 easy + 1 medium LeetCode problems', bonus: 'Review time complexity for all approaches' },
+    { week: 'Week 3-4', focus: 'Linked Lists, Stacks, Queues', daily: '1 easy + 2 medium problems', bonus: 'Implement data structures from scratch' },
+    { week: 'Week 5-6', focus: 'Trees, Graphs, BFS/DFS', daily: '2 medium + 1 hard problems', bonus: 'Practice graph traversal variations' },
+    { week: 'Week 7-8', focus: 'Dynamic Programming, Greedy', daily: '1 medium + 1 hard problems', bonus: 'Master top-down and bottom-up approaches' },
+    { week: 'Week 9-10', focus: 'System Design + Mock Interviews', daily: '1 system design case study', bonus: 'Do 2 mock interviews per week' },
+  ];
+
+  container.innerHTML = `
+    <div class="resources-tabs">
+      <button type="button" class="resources-tab active" data-tab="learning">📚 Learning Resources</button>
+      <button type="button" class="resources-tab" data-tab="company-prep">🏢 Company Prep</button>
+      <button type="button" class="resources-tab" data-tab="study-plan">📅 Study Plan</button>
+    </div>
+
+    <div id="resources-tab-learning" class="resources-tab-content active">
+      <div class="resources-grid">
+        ${resourceCategories.map(cat => `
+          <div class="resources-category-card">
+            <h3>${cat.title}</h3>
+            <ul class="resources-list">
+              ${cat.items.map(item => `
+                <li>
+                  <a href="${sanitizeExternalUrl(item.url)}" target="_blank" rel="noopener noreferrer">${item.name}</a>
+                  <span>${item.desc}</span>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div id="resources-tab-company-prep" class="resources-tab-content">
+      <div class="company-prep-grid">
+        ${companyPrepGuides.map(guide => {
+          const logoUrl = getCompanyLogoUrl(guide.company);
+          return `
+            <div class="company-prep-card">
+              <div class="company-prep-header">
+                ${logoUrl ? `<img src="${logoUrl}" alt="${guide.company}" class="company-prep-logo">` : ''}
+                <div>
+                  <h4>${guide.company}</h4>
+                  <span class="company-prep-rounds">${guide.rounds}</span>
+                </div>
+              </div>
+              <div class="company-prep-body">
+                <p><strong>Focus Areas:</strong> ${guide.focus}</p>
+                <p class="company-prep-tip">💡 ${guide.tip}</p>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+
+    <div id="resources-tab-study-plan" class="resources-tab-content">
+      <div class="study-plan-timeline">
+        ${weeklyPlan.map((week, i) => `
+          <div class="study-plan-item">
+            <div class="study-plan-marker">${i + 1}</div>
+            <div class="study-plan-content">
+              <h4>${week.week}: ${week.focus}</h4>
+              <p>📌 Daily: ${week.daily}</p>
+              <p class="study-plan-bonus">⭐ ${week.bonus}</p>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  // Tab switching
+  container.querySelectorAll('.resources-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      container.querySelectorAll('.resources-tab').forEach(t => t.classList.remove('active'));
+      container.querySelectorAll('.resources-tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.tab;
+      const targetEl = document.getElementById(`resources-tab-${target}`);
+      if (targetEl) targetEl.classList.add('active');
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ACHIEVEMENT BADGES
+// ═══════════════════════════════════════════════════════════════
+
+function getStudentBadges(student) {
+  const badges = [];
+  const lc = Number(student.leetcodeSolvedAll || 0);
+  const cgpa = Number(student.gradePoints || 0);
+  const internships = Number(student.internships || 0);
+  const certs = Number(student.certifications || 0);
+  const tenth = Number(student.tenthPercentage || 0);
+  const twelfth = Number(student.twelfthPercentage || 0);
+
+  // LeetCode badges
+  if (lc >= 500) badges.push({ icon: '🏆', name: 'LeetCode Legend', desc: '500+ problems solved', tier: 'gold' });
+  else if (lc >= 200) badges.push({ icon: '💎', name: 'Code Master', desc: '200+ problems solved', tier: 'silver' });
+  else if (lc >= 100) badges.push({ icon: '💻', name: '100 Club', desc: '100+ problems solved', tier: 'bronze' });
+  else if (lc >= 50) badges.push({ icon: '🔧', name: 'Problem Solver', desc: '50+ problems solved', tier: 'bronze' });
+
+  // CGPA badges
+  if (cgpa >= 9.5) badges.push({ icon: '🌟', name: 'Academic Genius', desc: 'CGPA 9.5+', tier: 'gold' });
+  else if (cgpa >= 8.5) badges.push({ icon: '⭐', name: 'CGPA Star', desc: 'CGPA 8.5+', tier: 'silver' });
+  else if (cgpa >= 7.5) badges.push({ icon: '📚', name: 'Consistent Scholar', desc: 'CGPA 7.5+', tier: 'bronze' });
+
+  // Internship badges
+  if (internships >= 3) badges.push({ icon: '🚀', name: 'Intern Pro', desc: '3+ internships', tier: 'gold' });
+  else if (internships >= 2) badges.push({ icon: '🏢', name: 'Industry Ready', desc: '2+ internships', tier: 'silver' });
+  else if (internships >= 1) badges.push({ icon: '👔', name: 'First Experience', desc: '1 internship', tier: 'bronze' });
+
+  // Certification badges
+  if (certs >= 5) badges.push({ icon: '🎖️', name: 'Certified Expert', desc: '5+ certifications', tier: 'gold' });
+  else if (certs >= 3) badges.push({ icon: '📜', name: 'Well Certified', desc: '3+ certifications', tier: 'silver' });
+  else if (certs >= 1) badges.push({ icon: '✅', name: 'Certified', desc: '1+ certification', tier: 'bronze' });
+
+  // Academic performance badges
+  if (tenth >= 95 && twelfth >= 95) badges.push({ icon: '🎯', name: 'Academic Ace', desc: '95%+ in 10th & 12th', tier: 'gold' });
+
+  // Placement status badge
+  const placementStatus = getPlacementStatusLabel(student);
+  if (placementStatus === 'Placed') badges.push({ icon: '🎉', name: 'Placed!', desc: 'Successfully placed', tier: 'gold' });
+
+  // All-rounder badge
+  if (lc >= 100 && cgpa >= 8 && internships >= 1 && certs >= 2) {
+    badges.push({ icon: '🌍', name: 'All-Rounder', desc: 'Strong across all areas', tier: 'gold' });
+  }
+
+  return badges;
+}
+
+function renderBadgesHtml(badges) {
+  if (!badges.length) return '<p style="color:#999;font-size:0.85rem;">Keep working to earn badges!</p>';
+  return `<div class="badges-grid">${badges.map(b => `
+    <div class="badge-item badge-${b.tier}" title="${b.desc}">
+      <span class="badge-icon">${b.icon}</span>
+      <span class="badge-name">${b.name}</span>
+    </div>
+  `).join('')}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROFILE COMPLETENESS
+// ═══════════════════════════════════════════════════════════════
+
+function getProfileCompleteness(student) {
+  const fields = [
+    { key: 'name', label: 'Name' },
+    { key: 'email', label: 'Email' },
+    { key: 'dept', label: 'Department' },
+    { key: 'year', label: 'Year' },
+    { key: 'gradePoints', label: 'CGPA' },
+    { key: 'tenthPercentage', label: '10th Percentage' },
+    { key: 'twelfthPercentage', label: '12th Percentage' },
+    { key: 'leetcodeUsername', label: 'LeetCode Username' },
+    { key: 'interest', label: 'Interest' },
+    { key: 'resumeLink', label: 'Resume Link' },
+    { key: 'internships', label: 'Internships' },
+    { key: 'certifications', label: 'Certifications' },
+    { key: 'contactNo', label: 'Contact Number' },
+    { key: 'preferredRoles', label: 'Preferred Roles' },
+    { key: 'achievements', label: 'Achievements' },
+  ];
+
+  const filled = [];
+  const missing = [];
+  fields.forEach(f => {
+    const val = student[f.key];
+    if (val !== null && val !== undefined && val !== '' && val !== 0) {
+      filled.push(f.label);
+    } else {
+      missing.push(f.label);
+    }
+  });
+
+  return { filled, missing, percentage: Math.round((filled.length / fields.length) * 100) };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ELIGIBILITY CHECKER
+// ═══════════════════════════════════════════════════════════════
+
+function getEligibilityResults(student) {
+  const results = [];
+  const cgpa = Number(student.gradePoints || 0);
+  const year = getYearNumber(student.year);
+
+  upcomingCompanies.forEach(company => {
+    const detail = getCompanyDetailInfo(company);
+    const minCgpa = parseFloat(detail.minCgpa) || 0;
+    const reasons = [];
+    let eligible = true;
+
+    if (cgpa < minCgpa) {
+      eligible = false;
+      reasons.push(`CGPA ${cgpa} < required ${minCgpa}`);
+    }
+    if (year < 4 && detail.eligibleYears === 'Final Year') {
+      eligible = false;
+      reasons.push(`Year ${year} — Final year students only`);
+    }
+
+    results.push({
+      company: company.name,
+      position: company.position,
+      salary: company.salary,
+      visitDate: company.visitDate,
+      eligible,
+      reasons,
+      minCgpa
+    });
+  });
+
+  return results;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SMART COMPANY RECOMMENDATIONS
+// ═══════════════════════════════════════════════════════════════
+
+function getCompanyRecommendations(student) {
+  const cgpa = Number(student.gradePoints || 0);
+  const lc = Number(student.leetcodeSolvedAll || 0);
+  const interest = getInterestCategory(student.interest);
+
+  if (interest !== 'Placements') return [];
+
+  return upcomingCompanies
+    .map(company => {
+      const detail = getCompanyDetailInfo(company);
+      const minCgpa = parseFloat(detail.minCgpa) || 0;
+      let score = 0;
+
+      // CGPA match (higher score if student exceeds)
+      if (cgpa >= minCgpa) score += 40 + Math.min((cgpa - minCgpa) * 5, 20);
+      else score += Math.max(0, 30 - (minCgpa - cgpa) * 10);
+
+      // LeetCode readiness for coding-heavy companies
+      if (lc >= 150) score += 30;
+      else if (lc >= 100) score += 20;
+      else if (lc >= 50) score += 10;
+
+      // CTC score
+      const ctcNum = parseFloat(String(company.ctc).replace(/[^\d.]/g, '')) || 0;
+      score += Math.min(ctcNum, 10);
+
+      return { ...company, score: Math.round(score), detail };
+    })
+    .filter(c => c.score > 30)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PEER BENCHMARKING
+// ═══════════════════════════════════════════════════════════════
+
+function getPeerBenchmark(student) {
+  const sameDept = students.filter(s => s.dept === student.dept);
+  const all = students;
+
+  const percentile = (list, key) => {
+    const val = Number(student[key] || 0);
+    const below = list.filter(s => Number(s[key] || 0) < val).length;
+    return list.length > 0 ? Math.round((below / list.length) * 100) : 0;
+  };
+
+  const avg = (list, key) => {
+    if (!list.length) return 0;
+    return list.reduce((sum, s) => sum + Number(s[key] || 0), 0) / list.length;
+  };
+
+  return {
+    deptName: student.dept || 'N/A',
+    metrics: [
+      { label: 'LeetCode', percentileDept: percentile(sameDept, 'leetcodeSolvedAll'), percentileAll: percentile(all, 'leetcodeSolvedAll'), value: Number(student.leetcodeSolvedAll || 0), avgDept: avg(sameDept, 'leetcodeSolvedAll').toFixed(0), avgAll: avg(all, 'leetcodeSolvedAll').toFixed(0) },
+      { label: 'CGPA', percentileDept: percentile(sameDept, 'gradePoints'), percentileAll: percentile(all, 'gradePoints'), value: Number(student.gradePoints || 0), avgDept: avg(sameDept, 'gradePoints').toFixed(2), avgAll: avg(all, 'gradePoints').toFixed(2) },
+      { label: 'Internships', percentileDept: percentile(sameDept, 'internships'), percentileAll: percentile(all, 'internships'), value: Number(student.internships || 0), avgDept: avg(sameDept, 'internships').toFixed(1), avgAll: avg(all, 'internships').toFixed(1) },
+      { label: 'Certs', percentileDept: percentile(sameDept, 'certifications'), percentileAll: percentile(all, 'certifications'), value: Number(student.certifications || 0), avgDept: avg(sameDept, 'certifications').toFixed(1), avgAll: avg(all, 'certifications').toFixed(1) },
+    ]
+  };
 }

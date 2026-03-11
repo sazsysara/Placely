@@ -20,6 +20,8 @@
             <li><a href="#" onclick="showSection('profile-section'); return false;">Profile</a></li>
             <li><a href="#" onclick="showSection('notifications-section'); return false;">Notifications</a></li>
             <li><a href="#" onclick="showSection('leaderboard-section'); return false;">Leaderboard</a></li>
+            <li><a href="#" onclick="showSection('compare-section'); return false;">Compare</a></li>
+            <li><a href="#" onclick="showSection('resources-section'); return false;">Resources</a></li>
             <li><a href="#" id="darkmode-toggle">🌙</a></li>
             <li><a href="#" id="logout-btn">Logout</a></li>
         </ul>
@@ -89,6 +91,14 @@
         <section id="leaderboard-section">
             <h2>Leaderboard</h2>
             <div id="leaderboard-content"></div>
+        </section>
+        <section id="compare-section">
+            <h2>Compare Students</h2>
+            <div id="compare-content"></div>
+        </section>
+        <section id="resources-section">
+            <h2>Resources & Interview Prep</h2>
+            <div id="resources-content"></div>
         </section>
     </div>
     <script src="{{ url_for('static', filename='js/main.js', v='20260301m') }}"></script>
